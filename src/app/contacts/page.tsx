@@ -19,11 +19,16 @@ export default function ContactsPage() {
     getContacts().then(setContacts);
   }, []);
 
+  function normalize(str: string) {
+    return str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  }
+
   const contactsFiltres = contacts.filter((contact) => {
+    const search = normalize(recherche);
     const matchRecherche =
       recherche === "" ||
-      contact.prenom.toLowerCase().includes(recherche.toLowerCase()) ||
-      metiers.find((m) => m.id === contact.metier)?.nom.toLowerCase().includes(recherche.toLowerCase());
+      normalize(contact.prenom).includes(search) ||
+      normalize(metiers.find((m) => m.id === contact.metier)?.nom || "").includes(search);
 
     const matchMetier = filtreMetier === "all" || contact.metier === filtreMetier;
 
