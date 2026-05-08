@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, DoorOpen, Square } from "lucide-react";
+import { Plus, Trash2, DoorOpen, Square, FileDown } from "lucide-react";
 import { Piece, Ouverture } from "@/lib/types";
 import { generateId } from "@/lib/storage";
 
 export function SurfaceCalculator() {
+  const [titre, setTitre] = useState("");
   const [pieces, setPieces] = useState<Piece[]>([]);
   const [hauteurDefaut, setHauteurDefaut] = useState(2.5);
 
@@ -34,15 +35,106 @@ export function SurfaceCalculator() {
   const totalSurfaceSol = pieces.reduce((acc, p) => acc + calculSurfaceSol(p), 0);
   const totalSurfaceMurs = pieces.reduce((acc, p) => acc + calculSurfaceMurs(p), 0);
 
+  async function exportPDF() {
+    const { jsPDF } = await import("jspdf");
+    const doc = new jsPDF();
+
+    const pdfTitle = titre || "Calcul de surfaces";
+    let y = 20;
+
+    // Header
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text(pdfTitle, 14, y);
+    y += 8;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(120);
+    doc.text(`Généré le ${new Date().toLocaleDateString("fr-FR")} — Dar El Itqan`, 14, y);
+    doc.setTextColor(0);
+    y += 12;
+
+    // Pieces
+    pieces.forEach((piece) => {
+      if (y > 260) { doc.addPage(); y = 20; }
+
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text(piece.nom, 14, y);
+      y += 7;
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Dimensions : ${piece.longueur} × ${piece.largeur} × ${piece.hauteur} m`, 14, y);
+      y += 6;
+
+      if (piece.ouvertures.length > 0) {
+        doc.text("Ouvertures :", 14, y);
+        y += 5;
+        piece.ouvertures.forEach((o) => {
+          doc.text(`  - ${o.type === "porte" ? "Porte" : "Fenêtre"} : ${o.largeur} × ${o.hauteur} m`, 14, y);
+          y += 5;
+        });
+      }
+
+      doc.text(`Surface au sol : ${calculSurfaceSol(piece).toFixed(2)} m²`, 14, y);
+      y += 5;
+      doc.text(`Surface murs : ${calculSurfaceMurs(piece).toFixed(2)} m²`, 14, y);
+      y += 10;
+
+      // Separator
+      doc.setDrawColor(220);
+      doc.line(14, y - 4, 196, y - 4);
+    });
+
+    // Total
+    if (y > 250) { doc.addPage(); y = 20; }
+    y += 4;
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.text("Récapitulatif", 14, y);
+    y += 8;
+    doc.setFontSize(11);
+    doc.text(`Surface totale au sol : ${totalSurfaceSol.toFixed(2)} m²`, 14, y);
+    y += 6;
+    doc.text(`Surface totale murs : ${totalSurfaceMurs.toFixed(2)} m²`, 14, y);
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    doc.text(`Nombre de pièces : ${pieces.length}`, 14, y);
+
+    const fileName = titre
+      ? `${titre.replace(/[^a-zA-Z0-9À-ÿ ]/g, "").replace(/\s+/g, "-").toLowerCase()}.pdf`
+      : "calcul-surfaces.pdf";
+    doc.save(fileName);
+  }
+
   const inputClass = "h-10 px-3 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#f9d423]/40 focus:border-[#f9d423]/50 transition-all";
 
   return (
     <div className="space-y-5">
+      {/* Titre du projet */}
+      <div>
+        <input
+          type="text"
+          value={titre}
+          onChange={(e) => setTitre(e.target.value)}
+          placeholder="Titre du projet (ex: Appartement Alger T3)"
+          className="w-full h-12 px-4 bg-card border border-border rounded-xl text-base font-semibold text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#f9d423]/40 focus:border-[#f9d423]/50 transition-all card-shadow"
+        />
+      </div>
+
+      {/* Config */}
       <div className="flex items-end gap-4">
         <div className="flex-1">
           <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Hauteur sous plafond</label>
           <div className="flex items-center gap-2 mt-1.5">
-            <input type="number" step="0.1" value={hauteurDefaut} onChange={(e) => setHauteurDefaut(parseFloat(e.target.value) || 0)} className={`${inputClass} w-20`} />
+            <input
+              type="number"
+              step="0.1"
+              value={hauteurDefaut}
+              onChange={(e) => setHauteurDefaut(parseFloat(e.target.value) || 0)}
+              className={`${inputClass} w-20`}
+            />
             <span className="text-xs text-muted-foreground">m</span>
           </div>
         </div>
@@ -51,6 +143,7 @@ export function SurfaceCalculator() {
         </button>
       </div>
 
+      {/* Pieces */}
       {pieces.map((piece) => (
         <div key={piece.id} className="bg-card rounded-2xl border border-border card-shadow overflow-hidden">
           <div className="flex items-center justify-between p-4 pb-0">
@@ -115,26 +208,37 @@ export function SurfaceCalculator() {
         </div>
       ))}
 
+      {/* Total + PDF */}
       {pieces.length > 0 && (
-        <div className="relative overflow-hidden rounded-2xl gradient-primary p-5 text-white">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-[#f9d423]/10 rounded-full -translate-y-8 translate-x-8" />
-          <h3 className="text-[10px] font-semibold text-white/60 uppercase tracking-widest">Récapitulatif</h3>
-          <div className="grid grid-cols-2 gap-4 mt-3">
-            <div>
-              <p className="text-white/50 text-xs">Surface totale au sol</p>
-              <p className="text-2xl font-bold text-[#f9d423] mt-0.5">{totalSurfaceSol.toFixed(2)} m²</p>
+        <>
+          <div className="relative overflow-hidden rounded-2xl gradient-primary p-5 text-white">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-[#f9d423]/10 rounded-full -translate-y-8 translate-x-8" />
+            <h3 className="text-[10px] font-semibold text-white/60 uppercase tracking-widest">Récapitulatif</h3>
+            <div className="grid grid-cols-2 gap-4 mt-3">
+              <div>
+                <p className="text-white/50 text-xs">Surface totale au sol</p>
+                <p className="text-2xl font-bold text-[#f9d423] mt-0.5">{totalSurfaceSol.toFixed(2)} m²</p>
+              </div>
+              <div>
+                <p className="text-white/50 text-xs">Surface totale murs</p>
+                <p className="text-2xl font-bold mt-0.5">{totalSurfaceMurs.toFixed(2)} m²</p>
+              </div>
             </div>
-            <div>
-              <p className="text-white/50 text-xs">Surface totale murs</p>
-              <p className="text-2xl font-bold mt-0.5">{totalSurfaceMurs.toFixed(2)} m²</p>
+            <div className="mt-3 pt-3 border-t border-white/15 text-sm text-white/50">
+              {pieces.length} pièce{pieces.length > 1 ? "s" : ""}
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-white/15 text-sm text-white/50">
-            {pieces.length} pièce{pieces.length > 1 ? "s" : ""}
-          </div>
-        </div>
+
+          <button
+            onClick={exportPDF}
+            className="w-full flex items-center justify-center gap-2 h-12 rounded-xl gradient-yellow text-[#333] font-bold text-sm hover-scale glow-yellow"
+          >
+            <FileDown className="w-5 h-5" /> Télécharger en PDF
+          </button>
+        </>
       )}
 
+      {/* Empty state */}
       {pieces.length === 0 && (
         <div className="text-center py-16">
           <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">

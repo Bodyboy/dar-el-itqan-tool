@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Outfit, Space_Grotesk } from "next/font/google";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
+import { RegisterSW } from "@/components/layout/RegisterSW";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -19,6 +20,13 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "Dar El Itqan - Outils BTP",
   description: "Boîte à outils pour professionnels du bâtiment",
+  manifest: "/manifest.json",
+  themeColor: "#333333",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Dar El Itqan",
+  },
 };
 
 export default function RootLayout({
@@ -38,6 +46,7 @@ export default function RootLayout({
             {children}
           </main>
           <BottomNav />
+          <RegisterSW />
         </ThemeProvider>
       </body>
     </html>
