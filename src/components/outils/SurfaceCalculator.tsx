@@ -54,10 +54,22 @@ export function SurfaceCalculator() {
     doc.setTextColor(0);
     y += 12;
 
+    let dalleSolSDB = 0;
+    let faienceSDB = 0;
+    let terrasse = 0;
+
     // Pieces
     pieces.forEach((piece) => {
       if (y > 260) { doc.addPage(); y = 20; }
 
+      if(piece.nom.toLowerCase().includes("sdb") || piece.nom.toLowerCase().includes("salle de bain")) {
+        dalleSolSDB += calculSurfaceSol(piece);
+        faienceSDB += calculSurfaceMurs(piece); 
+      }
+
+      if(piece.nom.toLowerCase().includes("terrasse") || piece.nom.toLowerCase().includes("terasse")) {
+        terrasse += calculSurfaceSol(piece);
+      }
       doc.setFontSize(12);
       doc.setFont("helvetica", "bold");
       doc.text(piece.nom, 14, y);
@@ -85,11 +97,12 @@ export function SurfaceCalculator() {
       // Separator
       doc.setDrawColor(220);
       doc.line(14, y - 4, 196, y - 4);
+      y += 6;
+
     });
 
     // Total
     if (y > 250) { doc.addPage(); y = 20; }
-    y += 4;
     doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
     doc.text("Récapitulatif", 14, y);
@@ -101,6 +114,41 @@ export function SurfaceCalculator() {
     y += 6;
     doc.setFont("helvetica", "normal");
     doc.text(`Nombre de pièces : ${pieces.length}`, 14, y);
+
+    y += 12;
+
+    doc.setDrawColor(220);
+    doc.line(14, y - 4, 196, y - 4);
+    y += 6;
+
+    //quantité carrelage
+
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.text("Quantité carrelage", 14, y);
+
+    let surfaceCarrelage = Math.ceil(totalSurfaceSol * 1.1); // Ajouter 10% de marge pour les découpes et pertes
+    dalleSolSDB = Math.ceil(dalleSolSDB * 1.1);
+    faienceSDB = Math.ceil(faienceSDB * 1.1);
+    if(terrasse){
+      terrasse = Math.ceil(terrasse * 1.1);
+    }
+
+    y += 6;
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Dalle de sol: ${surfaceCarrelage} m² (inclus +10%)`, 14, y);
+      y += 6;
+    doc.text(`Dalle de sol (SDB): ${dalleSolSDB} m² (inclus +10%)`, 14, y);
+      y += 6;
+    doc.text(`Faience (SDB): ${faienceSDB} m² (inclus +10%)`, 14, y);
+    if(terrasse){
+      y += 6;
+      doc.text(`Terrasse: ${terrasse} m² (inclus +10%)`, 14, y);
+    }
+    
+
 
     const fileName = titre
       ? `${titre.replace(/[^a-zA-Z0-9À-ÿ ]/g, "").replace(/\s+/g, "-").toLowerCase()}.pdf`

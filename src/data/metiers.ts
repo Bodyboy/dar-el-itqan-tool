@@ -40,6 +40,7 @@ export const metiers: Metier[] = [
   { id: "fournisseur-carrelage", nom: "Fournisseur Carrelage", categorie: "autres" },
   { id: "fournisseur-peinture", nom: "Fournisseur Peinture", categorie: "autres" },
   { id: "fournisseur-placo", nom: "Fournisseur Placo", categorie: "autres" },
+  { id: "fournisseur-electricite", nom: "Fournisseur Electricite", categorie: "autres" },
 
 ];
 
